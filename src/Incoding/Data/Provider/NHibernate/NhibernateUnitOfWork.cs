@@ -3,6 +3,8 @@ namespace Incoding.Data
     #region << Using >>
 
     using System.Data;
+    using System.Threading;
+    using System.Threading.Tasks;
     using NHibernate;
 
     #endregion
@@ -35,9 +37,19 @@ namespace Incoding.Data
             session.Flush();
         }
 
+        protected override async Task InternalFlushAsync(CancellationToken ct = default)
+        {
+           await session.FlushAsync(ct);
+        }
+
         protected override void InternalCommit()
         {
             transaction.Commit();
+        }
+
+        protected override async Task InternalCommitAsync(CancellationToken ct = default)
+        {
+            await transaction.CommitAsync(ct);
         }
 
         protected override void InternalSubmit()

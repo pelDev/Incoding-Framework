@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36202.13 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Incoding", "Incoding\Incoding.csproj", "{D66AD474-A026-4AB2-B475-6477488443C4}"
 EndProject
@@ -39,7 +39,6 @@ Global
 		{ECE7EC3C-8D92-40A4-930A-00F541F46C62}.Publish|Any CPU.ActiveCfg = Release|Any CPU
 		{ECE7EC3C-8D92-40A4-930A-00F541F46C62}.Publish|Any CPU.Build.0 = Release|Any CPU
 		{ECE7EC3C-8D92-40A4-930A-00F541F46C62}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ECE7EC3C-8D92-40A4-930A-00F541F46C62}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FE64E248-A5C7-472A-93E0-68B5EC8A8DA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FE64E248-A5C7-472A-93E0-68B5EC8A8DA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE64E248-A5C7-472A-93E0-68B5EC8A8DA4}.Publish|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,7 +50,6 @@ Global
 		{D07EC3BB-F2FD-4093-838B-39C73B42140E}.Publish|Any CPU.ActiveCfg = Release|Any CPU
 		{D07EC3BB-F2FD-4093-838B-39C73B42140E}.Publish|Any CPU.Build.0 = Release|Any CPU
 		{D07EC3BB-F2FD-4093-838B-39C73B42140E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D07EC3BB-F2FD-4093-838B-39C73B42140E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0451BAEF-DF2E-4B98-8644-94EE9415E389}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0451BAEF-DF2E-4B98-8644-94EE9415E389}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0451BAEF-DF2E-4B98-8644-94EE9415E389}.Publish|Any CPU.ActiveCfg = Release|Any CPU
@@ -80,12 +78,12 @@ Global
 		{1E580FAC-0390-4E02-884E-52BB32D94858} = {6C2AC764-1F9A-4B40-8FEE-BCFAD6E245E2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		BuildVersion_BuildVersioningStyle = None.None.None.None
-		BuildVersion_DetectChanges = True
-		BuildVersion_IncrementBeforeBuild = True
-		BuildVersion_BuildAction = ReBuild
-		BuildVersion_UpdateFileVersion = False
 		BuildVersion_UpdateAssemblyVersion = False
+		BuildVersion_UpdateFileVersion = False
+		BuildVersion_BuildAction = ReBuild
+		BuildVersion_IncrementBeforeBuild = True
+		BuildVersion_DetectChanges = True
+		BuildVersion_BuildVersioningStyle = None.None.None.None
 	EndGlobalSection
 	GlobalSection(NDepend) = preSolution
 		Project = ".\IncFramework.ndproj"

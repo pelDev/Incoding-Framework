@@ -6,6 +6,8 @@
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using System.Web;
     using System.Web.Mvc;
     using Incoding.CQRS;
@@ -60,6 +62,65 @@
                                                                                                     });
         }
 
+        protected override async Task<object> ExecuteResultAsync(CancellationToken ct = default)
+        {
+            var byPair = Type.Split(UrlDispatcher.separatorByPair.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            string genericType = byPair.ElementAtOrDefault(1);
+
+            var inst = await Dispatcher.QueryAsync(new FindTypeByName()
+            {
+                Type = byPair[0],
+            }, null, ct);
+
+            var formCollection = await Dispatcher.QueryAsync(new GetFormCollectionsQuery(), ct: ct);
+            var instanceType = IsGroup ? typeof(List<>).MakeGenericType(inst) : inst;
+
+            if (instanceType.IsTypicalType() && IsModel)
+            {
+                string str = formCollection["incValue"];
+                if (instanceType == typeof(string))
+                    return str;
+                if (instanceType == typeof(bool))
+                    return bool.Parse(str);
+                if (instanceType == typeof(DateTime))
+                    return DateTime.Parse(str);
+                if (instanceType == typeof(int))
+                    return int.Parse(str);
+                if (instanceType.IsEnum)
+                    return Enum.Parse(instanceType, str);
+            }
+            else if (!string.IsNullOrWhiteSpace(genericType))
+            {
+                var genericArgs = await Task.WhenAll(
+                    genericType.Split(UrlDispatcher.separatorByGeneric.ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
+                               .Select(name => Dispatcher.QueryAsync(new FindTypeByName() { Type = name }, null, ct))
+                );
+                instanceType = instanceType.MakeGenericType(genericArgs);
+            }
+
+            object model = null;
+            try
+            {
+                model = Activator.CreateInstance(instanceType);
+            }
+            catch (MissingMethodException ex)
+            {
+                throw new InvalidOperationException($"Cannot create instance of type {instanceType.FullName}.", ex);
+            }
+
+            return new DefaultModelBinder().BindModel(
+                ControllerContext ?? throw new InvalidOperationException("ControllerContext is not initialized."),
+                new ModelBindingContext()
+                {
+                    ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(() => model, instanceType),
+                    ModelState = ModelState ?? new ModelStateDictionary(),
+                    ValueProvider = ControllerContext != null
+                        ? ValueProviderFactories.Factories.GetValueProvider(ControllerContext)
+                        : formCollection,
+                });
+        }
+
+
         public sealed class AsCommands : QueryBase<CommandBase[]>
         {
             public string IncTypes { get; set; }
@@ -84,6 +145,42 @@
                                                                              })).ToArray()
                                : splitByType.Select(r => (CommandBase)Dispatcher.Query(new CreateByTypeQuery() { Type = r, ControllerContext = this.ControllerContext, ModelState = ModelState })).ToArray();
             }
+
+            protected override async Task<CommandBase[]> ExecuteResultAsync(CancellationToken ct = default)
+            {
+                var splitByType = IncTypes.Split(UrlDispatcher.separatorByType.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+
+                bool isCompositeAsArray = splitByType.Length == 1 && IsComposite.GetValueOrDefault();
+
+                if (isCompositeAsArray)
+                {
+                    var result = await Dispatcher.QueryAsync(new CreateByTypeQuery
+                    {
+                        Type = splitByType[0],
+                        ControllerContext = ControllerContext,
+                        ModelState = ModelState,
+                        IsGroup = true
+                    }, null, ct);
+
+                    return ((IEnumerable<CommandBase>)result).ToArray();
+                }
+                else
+                {
+                    var tasks = splitByType.Select(type =>
+                        Dispatcher.QueryAsync(new CreateByTypeQuery
+                        {
+                            Type = type,
+                            ControllerContext = ControllerContext,
+                            ModelState = ModelState
+                        }, null, ct)
+                    );
+
+                    var results = await Task.WhenAll(tasks);
+
+                    return results.Cast<CommandBase>().ToArray();
+                }
+            }
+
         }
 
         #region Nested classes
@@ -119,6 +216,11 @@
                                                         });
                 return System.Type.GetType(assmelbyName);
             }
+
+            protected override Task<Type> ExecuteResultAsync(CancellationToken ct = default)
+            {
+                throw new NotSupportedException();
+            }
         }
 
         #endregion
@@ -128,10 +230,18 @@
             protected override FormCollection ExecuteResult()
             {
                 var request = HttpContext.Current.Request;
-                var formAndQuery = new FormCollection(request.Form);
-                formAndQuery.Add(request.QueryString);
+                var formAndQuery = new FormCollection(request.Form)
+                {
+                    request.QueryString
+                };
                 return formAndQuery;
             }
+
+            protected override Task<FormCollection> ExecuteResultAsync(CancellationToken ct = default)
+            {
+                throw new NotSupportedException();
+            }
+
         }
 
         #region Properties

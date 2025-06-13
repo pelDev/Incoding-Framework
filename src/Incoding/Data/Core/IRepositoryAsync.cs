@@ -1,83 +1,74 @@
-namespace Incoding.Data
+﻿namespace Incoding.Data
 {
+    using System.Collections.Generic;
     #region << Using >>
 
-    using System.Collections.Generic;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
 
     #endregion
 
-    public interface IRepository
+    public interface IRepositoryAsync
     {
-        #region Methods
+        #region << Methods >>
 
-        void ExecuteSql(string sql);
-        Task ExecuteSqlAsync(string sql, CancellationToken cancellationToken = default);
+        TProvider GetProvider<TProvider>() where TProvider : class;
 
-        TProvider GetProvider<TProvider>() where TProvider:class;
-        
+        Task ExecuteSql(string sql);
+
+
         /// <summary>
         ///     Persist the given entity instance
         /// </summary>
         /// <typeparam name="TEntity">Strong type entity</typeparam>
         /// <param name="entity">Entity instance</param>
-        void Save<TEntity>(TEntity entity) where TEntity : class, IEntity, new();
-        Task SaveAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task Save<TEntity>(TEntity entity) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Persist the given entity instance
         /// </summary>
         /// <typeparam name="TEntity">Strong type entity</typeparam>
         /// <param name="entities">Entities instance</param>
-        void Saves<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity, new();
-        Task SavesAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task Saves<TEntity>(IEnumerable<TEntity> entities) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Flushed if a query is requested for some entity type and there are dirty local entity instances
         /// </summary>
-        void Flush();
-        Task FlushAsync(CancellationToken cancellationToken = default);
+        Task Flush();
 
         /// <summary>
         ///     <see cref="Saves{TEntity}" /> or update
         /// </summary>
         /// <typeparam name="TEntity">Type entity</typeparam>
         /// <param name="entity">Entity instance</param>
-        void SaveOrUpdate<TEntity>(TEntity entity) where TEntity : class, IEntity, new();
-        Task SaveOrUpdateAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task SaveOrUpdate<TEntity>(TEntity entity) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Delete a entity from the datastore  by id
         /// </summary>
         /// <typeparam name="TEntity">Type entity</typeparam>
         /// <param name="id">Id</param>
-        void Delete<TEntity>(object id) where TEntity : class, IEntity, new();
-        Task DeleteAsync<TEntity>(object id, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task Delete<TEntity>(object id) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Delete a entity from the datastore  by ids ( don't support cascade )
         /// </summary>
         /// <typeparam name="TEntity">Type entity</typeparam>
         /// <param name="ids">Ids</param>
-        void DeleteByIds<TEntity>(IEnumerable<object> ids) where TEntity : class, IEntity, new();
-        Task DeleteByIdsAsync<TEntity>(IEnumerable<object> ids, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task DeleteByIds<TEntity>(IEnumerable<object> ids) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Delete a entity instance from the datastore
         /// </summary>
         /// <typeparam name="TEntity">Type entity</typeparam>
         /// <param name="entity">Persistence instance</param>
-        void Delete<TEntity>(TEntity entity) where TEntity : class, IEntity, new();
-        Task DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task Delete<TEntity>(TEntity entity) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Delete all entities
         /// </summary>
         /// <typeparam name="TEntity"></typeparam>
-        void DeleteAll<TEntity>() where TEntity : class, IEntity, new();
-        Task DeleteAllAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task DeleteAll<TEntity>() where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Getting entity instance from persist
@@ -85,8 +76,7 @@ namespace Incoding.Data
         /// <typeparam name="TEntity">Strong type entity</typeparam>
         /// <param name="id">Primary key</param>
         /// <returns> Instance entity </returns>
-        TEntity GetById<TEntity>(object id) where TEntity : class, IEntity, new();
-        Task<TEntity> GetByIdAsync<TEntity>(object id, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task<TEntity> GetById<TEntity>(object id) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Getting entity instance from persist or cache
@@ -94,8 +84,7 @@ namespace Incoding.Data
         /// <typeparam name="TEntity">Strong type entity</typeparam>
         /// <param name="id">Primary key</param>
         /// <returns> Instance entity </returns>
-        TEntity LoadById<TEntity>(object id) where TEntity : class, IEntity, new();
-        Task<TEntity> LoadByIdAsync<TEntity>(object id, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
+        Task<TEntity> LoadById<TEntity>(object id) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Query entities with specifications
@@ -118,7 +107,7 @@ namespace Incoding.Data
         /// <returns>
         ///     Queryable collections ( pending request )
         /// </returns>
-        IQueryable<TEntity> Query<TEntity>(OrderSpecification<TEntity> orderSpecification = null, Specification<TEntity> whereSpecification = null, FetchSpecification<TEntity> fetchSpecification = null, PaginatedSpecification paginatedSpecification = null) where TEntity : class, IEntity, new();
+        Task<IQueryable<TEntity>> Query<TEntity>(OrderSpecification<TEntity> orderSpecification = null, Specification<TEntity> whereSpecification = null, FetchSpecification<TEntity> fetchSpecification = null, PaginatedSpecification paginatedSpecification = null) where TEntity : class, IEntity, new();
 
         /// <summary>
         ///     Query page by page
@@ -141,9 +130,7 @@ namespace Incoding.Data
         /// <returns>
         ///     <see cref="IncPaginatedResult{TItem}" />
         /// </returns>
-        IncPaginatedResult<TEntity> Paginated<TEntity>(PaginatedSpecification paginatedSpecification, OrderSpecification<TEntity> orderSpecification = null, Specification<TEntity> whereSpecification = null, FetchSpecification<TEntity> fetchSpecification = null) where TEntity : class, IEntity, new();
-        Task<IncPaginatedResult<TEntity>> PaginatedAsync<TEntity>(PaginatedSpecification paginatedSpecification, OrderSpecification<TEntity> orderSpecification = null, Specification<TEntity> whereSpecification = null, FetchSpecification<TEntity> fetchSpecification = null, CancellationToken cancellationToken = default) where TEntity : class, IEntity, new();
-
+        Task<IncPaginatedResult<TEntity>> Paginated<TEntity>(PaginatedSpecification paginatedSpecification, OrderSpecification<TEntity> orderSpecification = null, Specification<TEntity> whereSpecification = null, FetchSpecification<TEntity> fetchSpecification = null) where TEntity : class, IEntity, new();
 
         /// <summary>
         /// Completely clear the session. Evict all loaded instances and cancel all pending
@@ -152,4 +139,5 @@ namespace Incoding.Data
 
         #endregion
     }
+
 }

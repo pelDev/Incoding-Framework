@@ -4,6 +4,8 @@
 
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.CQRS;
     using Incoding.Extensions;
 
@@ -91,6 +93,11 @@
 
                 nextDate = nextDate.AddTimeByRepeatType(repeatType, repeatInterval);
             }
+        }
+
+        protected override Task<DateTime?> ExecuteResultAsync(CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
         }
 
         #region Properties

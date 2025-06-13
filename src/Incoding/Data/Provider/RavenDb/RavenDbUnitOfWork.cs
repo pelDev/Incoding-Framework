@@ -1,5 +1,7 @@
 ﻿namespace Incoding.Data
 {
+    using System.Threading;
+    using System.Threading.Tasks;
     #region << Using >>
 
     using System.Transactions;
@@ -40,6 +42,16 @@
         protected override void InternalSubmit()
         {
             transaction.Dispose();
+        }
+
+        protected override Task InternalFlushAsync(CancellationToken ct = default)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        protected override Task InternalCommitAsync(CancellationToken ct = default)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

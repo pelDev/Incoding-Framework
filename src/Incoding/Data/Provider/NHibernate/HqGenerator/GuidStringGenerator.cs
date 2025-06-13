@@ -4,6 +4,8 @@ namespace Incoding.Data
 
     using NHibernate.Engine;
     using NHibernate.Id;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     #endregion
 
@@ -15,6 +17,11 @@ namespace Incoding.Data
         public object Generate(ISessionImplementor session, object obj)
         {
             return new GuidCombGenerator().Generate(session, obj).ToString();
+        }
+
+        Task<object> IIdentifierGenerator.GenerateAsync(ISessionImplementor session, object obj, CancellationToken cancellationToken)
+        {
+            return new GuidCombGenerator().GenerateAsync(session, obj, cancellationToken);
         }
 
         #endregion

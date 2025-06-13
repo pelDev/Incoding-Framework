@@ -3,6 +3,9 @@
     #region << Using >>
 
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Web.Caching;
 
     #endregion
 
@@ -37,7 +40,11 @@
 
         protected abstract void InternalFlush();
 
+        protected abstract Task InternalFlushAsync(CancellationToken ct = default);
+
         protected abstract void InternalCommit();
+
+        protected abstract Task InternalCommitAsync(CancellationToken ct = default);
 
         #region Fields
 
@@ -61,10 +68,21 @@
             InternalCommit();
         }
 
+        public async Task CommitAsync(CancellationToken ct = default)
+        {
+            await InternalCommitAsync(ct);
+        }
+
         public void Flush()
         {
             if (!disposed)
                 InternalFlush();
+        }
+
+        public async Task FlushAsync(CancellationToken ct = default)
+        {
+            if (!disposed)
+                await InternalFlushAsync(ct);
         }
 
         #endregion

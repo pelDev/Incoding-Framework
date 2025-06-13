@@ -117,7 +117,7 @@ NDependOut*/
 
 # our output folder for build artifacts
 artifacts
-
+**/.vs/
 
 *.pdb
 *.dll

@@ -7,6 +7,7 @@ namespace Incoding.CQRS
     using System.Data;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.Block.IoC;
     using Incoding.Data;
     using Incoding.Maybe;
@@ -79,6 +80,17 @@ namespace Incoding.CQRS
                                     r.Value.Commit();
                             });
             }
+
+            public async Task CommitAsync(CancellationToken ct = default)
+            {
+                var result = this.Select(r => r.Value);
+
+                foreach (var item in result)
+                {
+                    if (item.IsValueCreated)
+                        await item.Value.CommitAsync(ct);
+                }
+            }
         }
 
         #endregion
@@ -89,6 +101,7 @@ namespace Incoding.CQRS
         {
             bool isOuterCycle = !unitOfWorkCollection.Any();
             var isFlush = composite.Parts.Any(s => s is CommandBase);
+
             try
             {
                 foreach (var groupMessage in composite.Parts.GroupBy(part => part.Setting, r => r))
@@ -125,9 +138,56 @@ namespace Incoding.CQRS
             }
         }
 
+        public async Task PushAsync(CommandComposite composite, CancellationToken ct)
+        {
+            bool isOuterCycle = !unitOfWorkCollection.Any();
+            var isFlush = composite.Parts.Any(s => s is CommandBase);
+
+            try
+            {
+                foreach (var groupMessage in composite.Parts.GroupBy(part => part.Setting, r => r))
+                {
+                    foreach (var part in groupMessage)
+                    {
+                        if (isOuterCycle)
+                        {
+                            if (part.Setting.UID == Guid.Empty)
+                                part.Setting.UID = Guid.NewGuid();
+                            part.Setting.IsOuter = true;
+                        }
+                        var unitOfWork = unitOfWorkCollection.AddOrGet(groupMessage.Key, isFlush);
+                        foreach (var interception in interceptions)
+                            interception().OnBefore(part);
+
+                        await part.OnExecuteAsync(this, unitOfWork, ct);
+
+                        foreach (var interception in interceptions)
+                            interception().OnAfter(part);
+
+                        var isFlushInIteration = part is CommandBase;
+                        if (unitOfWork.IsValueCreated && isFlushInIteration)
+                            await unitOfWork.Value.FlushAsync(ct);
+                    }
+                }
+                if (isOuterCycle && isFlush)
+                    await this.unitOfWorkCollection.CommitAsync(ct);
+            }
+            finally
+            {
+                if (isOuterCycle)
+                    unitOfWorkCollection.Dispose();
+            }
+        }
+
         public TResult Query<TResult>(QueryBase<TResult> message, MessageExecuteSetting executeSetting = null)
         {
             Push(new CommandComposite(message, executeSetting));
+            return (TResult)message.Result;
+        }
+
+        public async Task<TResult> QueryAsync<TResult>(QueryBase<TResult> message, MessageExecuteSetting executeSetting, CancellationToken ct)
+        {
+            await PushAsync(new CommandComposite(message, executeSetting), ct);
             return (TResult)message.Result;
         }
 

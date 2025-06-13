@@ -3,6 +3,8 @@
     #region << Using >>
 
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     #endregion
 
@@ -10,8 +12,12 @@
     {
         void Flush();
 
+        Task FlushAsync(CancellationToken ct = default);
+
         IRepository GetRepository();
 
         void Commit();
+
+        Task CommitAsync(CancellationToken ct = default);
     }
 }

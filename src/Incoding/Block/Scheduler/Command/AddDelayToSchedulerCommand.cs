@@ -3,6 +3,8 @@
     #region << Using >>
 
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.CQRS;
     using Incoding.Extensions;
 
@@ -34,6 +36,32 @@
                                                      TimeOut = option.TimeOutOfMillisecond
                                              }
                             });
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken ct = default)
+        {
+            Recurrency = Recurrency ?? new GetRecurrencyDateQuery
+            {
+                Type = GetRecurrencyDateQuery.RepeatType.Once,
+            };
+            var type = Command.GetType();
+            var option = type.FirstOrDefaultAttribute<OptionOfDelayAttribute>() ?? new OptionOfDelayAttribute();
+            await Repository.SaveAsync(new DelayToScheduler
+            {
+                Command = Command.ToJsonString(),
+                CreateDt = DateTime.UtcNow,
+                Type = type.AssemblyQualifiedName,
+                UID = UID,
+                Priority = Priority,
+                Status = DelayOfStatus.New,
+                Recurrence = Recurrency,
+                StartsOn = Recurrency.StartDate.GetValueOrDefault(DateTime.UtcNow),
+                Option = new DelayToScheduler.OptionOfDelay()
+                {
+                    Async = option.Async,
+                    TimeOut = option.TimeOutOfMillisecond
+                }
+            }, ct);
         }
 
         #region Constructors

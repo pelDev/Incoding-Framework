@@ -4,8 +4,11 @@
 
     using System;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.Extensions;
     using Incoding.Maybe;
+    using NHibernate.Linq;
 
     #endregion
 
@@ -15,6 +18,13 @@
         {
             int totalCount = source.Query(null, whereSpecification, null, null).Count();
             var paginatedItems = source.Query(orderSpecification, whereSpecification, fetchSpecification, paginatedSpecification).ToList();
+            return new IncPaginatedResult<TEntity>(paginatedItems, totalCount);
+        }
+
+        public static async Task<IncPaginatedResult<TEntity>> PaginatedAsync<TEntity>(this IQueryable<TEntity> source, OrderSpecification<TEntity> orderSpecification, Specification<TEntity> whereSpecification, FetchSpecification<TEntity> fetchSpecification, PaginatedSpecification paginatedSpecification, CancellationToken ct = default) where TEntity : class, IEntity
+        {
+            int totalCount = await source.Query(null, whereSpecification, null, null).CountAsync(ct);
+            var paginatedItems = await source.Query(orderSpecification, whereSpecification, fetchSpecification, paginatedSpecification).ToListAsync(ct);
             return new IncPaginatedResult<TEntity>(paginatedItems, totalCount);
         }
 

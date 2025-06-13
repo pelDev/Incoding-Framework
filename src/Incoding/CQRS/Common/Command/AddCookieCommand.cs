@@ -4,6 +4,8 @@
 
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Threading;
+    using System.Threading.Tasks;
     using System.Web;
     using JetBrains.Annotations;
 
@@ -43,6 +45,11 @@
                                                      {
                                                              Expires = DateTime.Now.AddYears(1)
                                                      });
+        }
+
+        protected override Task ExecuteAsync(CancellationToken ct = default)
+        {
+            return Task.Run(() => Execute());
         }
     }
 }

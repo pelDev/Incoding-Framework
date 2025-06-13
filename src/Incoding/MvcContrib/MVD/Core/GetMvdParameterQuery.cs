@@ -1,8 +1,11 @@
 namespace Incoding.MvcContrib.MVD
 {
+    using System;
     #region << Using >>
 
     using System.Collections.Specialized;
+    using System.Threading;
+    using System.Threading.Tasks;
     using System.Web;
     using Incoding.CQRS;
 
@@ -34,6 +37,11 @@ namespace Incoding.MvcContrib.MVD
                            ContentType = string.IsNullOrWhiteSpace(contentType) ? "img" : contentType,
                            FileDownloadName = Params["incFileDownloadName"] ?? string.Empty,
                    };
+        }
+
+        protected override Task<Response> ExecuteResultAsync(CancellationToken ct = default)
+        {
+            throw new NotSupportedException("This query does not support async execution.");
         }
 
         public class Response

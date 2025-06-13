@@ -26,7 +26,11 @@ namespace Incoding.Data
         {
             var session = sessionFactory.Value.OpenSession();
             if (!string.IsNullOrWhiteSpace(connectionString))
-                session.Connection.ConnectionString = connectionString;
+            {
+                // New (NHibernate 5.2+):
+                var connection = session.GetSessionImplementation().Connection;
+                connection.ConnectionString = connectionString;
+            }
 
             return session;
         }

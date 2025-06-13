@@ -1,6 +1,8 @@
 namespace Incoding.CQRS
 {
     using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.Block;
 
     public abstract class QueryBase<TResult> : MessageBase
@@ -12,9 +14,15 @@ namespace Incoding.CQRS
             Result = ExecuteResult();
         }
 
+        protected override async Task ExecuteAsync(CancellationToken ct = default)
+        {
+            Result = await ExecuteResultAsync(ct);
+        }
+
         #endregion
 
         protected abstract TResult ExecuteResult();
 
+        protected abstract Task<TResult> ExecuteResultAsync(CancellationToken ct = default);
     }
 }

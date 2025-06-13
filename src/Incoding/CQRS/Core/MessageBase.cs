@@ -4,6 +4,7 @@
 
     using System;
     using System.Runtime.Serialization;
+    using System.Threading;
     using System.Threading.Tasks;
     using Incoding.Block.IoC;
     using Incoding.Data;    
@@ -21,6 +22,7 @@
         
         Lazy<MessageDispatcher> messageDispatcher;
 
+
         #endregion
 
         #region Properties
@@ -36,7 +38,7 @@
 
         #region IMessage<TResult> Members
 
-        
+
         [IgnoreCompare("Design fixed"), JsonIgnore, IgnoreDataMember]
         public virtual object Result { get; protected set; }
 
@@ -51,11 +53,21 @@
             Execute();
         }
 
+        public virtual async Task OnExecuteAsync(IDispatcher current, Lazy<IUnitOfWork> unitOfWork, CancellationToken ct = default)
+        {
+            Result = null;
+            lazyRepository = new Lazy<IRepository>(() => unitOfWork.Value.GetRepository());
+            messageDispatcher = new Lazy<MessageDispatcher>(() => new MessageDispatcher(current, Setting));
+            await ExecuteAsync(ct);
+        }
+
         #endregion
 
         #region Api Methods
 
         protected abstract void Execute();
+
+        protected abstract Task ExecuteAsync(CancellationToken ct = default);
 
         #endregion
 
@@ -136,16 +148,35 @@
                 return dispatcher.Query(query, outerSetting);
             }
 
+            public async Task<TQueryResult> QueryAsync<TQueryResult>(QueryBase<TQueryResult> query, Action<MessageExecuteSetting> configuration = null, CancellationToken ct = default)
+            {
+                configuration.Do(action => action(outerSetting));
+                return await dispatcher.QueryAsync(query, outerSetting, ct);
+            }
+
             public void Push(CommandBase command, Action<MessageExecuteSetting> configuration = null)
             {
                 configuration.Do(action => action(outerSetting));
                 dispatcher.Push(command, outerSetting);
             }
 
+            public async Task PushAsync(CommandBase command, Action<MessageExecuteSetting> configuration = null, CancellationToken ct = default)
+            {
+                configuration.Do(action => action(outerSetting));
+                await dispatcher.PushAsync(command, outerSetting, ct);
+            }
+
             public TResult Push<TResult>(CommandBase command, Action<MessageExecuteSetting> configuration = null)
             {
                 configuration.Do(action => action(outerSetting));
                 dispatcher.Push(command, outerSetting);
+                return (TResult)command.Result;
+            }
+
+            public async Task<TResult> PushAsync<TResult>(CommandBase command, Action<MessageExecuteSetting> configuration = null, CancellationToken ct = default)
+            {
+                configuration.Do(action => action(outerSetting));
+                await dispatcher.PushAsync(command, outerSetting, ct);
                 return (TResult)command.Result;
             }
 

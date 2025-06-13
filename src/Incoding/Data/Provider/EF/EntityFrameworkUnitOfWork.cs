@@ -5,6 +5,8 @@
     using System.Data;
     using System.Data.Entity;
     using System.Diagnostics.CodeAnalysis;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     #endregion
 
@@ -49,6 +51,16 @@
                 transaction.Rollback();
 
             transaction.Dispose();
+        }
+
+        protected override Task InternalFlushAsync(CancellationToken ct = default)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        protected override Task InternalCommitAsync(CancellationToken ct = default)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

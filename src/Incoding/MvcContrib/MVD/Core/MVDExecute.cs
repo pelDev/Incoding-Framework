@@ -6,6 +6,8 @@
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using System.Web;
     using Incoding.CQRS;
     using Incoding.Quality;
@@ -34,6 +36,7 @@
             interceptions.Add(create);
         }
 
+        /// <inheritdoc/>
         protected override object ExecuteResult()
         {
             Guard.NotNull("Instance", "Instance query can't be null");
@@ -53,5 +56,28 @@
 
             return Instance.Parts.Count == 1 ? Instance.Parts[0].Result : Instance.Parts.Select(r => r.Result);
         }
+
+        /// <inheritdoc/>
+        protected override async Task<object> ExecuteResultAsync(CancellationToken ct = default)
+        {
+            Guard.NotNull("Instance", "Instance query can't be null");
+
+            foreach (var interception in interceptions)
+            {
+                foreach (var message in Instance.Parts)
+                    interception().OnBefore(message);
+            }
+
+            await new DefaultDispatcher().PushAsync(Instance, ct);
+
+            foreach (var interception in interceptions)
+            {
+                foreach (var message in Instance.Parts)
+                    interception().OnAfter(message);
+            }
+
+            return Instance.Parts.Count == 1 ? Instance.Parts[0].Result : Instance.Parts.Select(r => r.Result);
+        }
+
     }
 }

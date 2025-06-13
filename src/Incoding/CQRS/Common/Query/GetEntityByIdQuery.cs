@@ -5,6 +5,8 @@ namespace Incoding.CQRS
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.Block;
     using Incoding.Data;
     using Incoding.Quality;
@@ -36,9 +38,16 @@ namespace Incoding.CQRS
 
         #region Override
 
+        /// <inheritdoc/>
         protected override T ExecuteResult()
         {
             return Repository.GetById<T>(Id);
+        }
+
+        /// <inheritdoc/>
+        protected override Task<T> ExecuteResultAsync(CancellationToken ct = default)
+        {
+            return Repository.GetByIdAsync<T>(Id, ct);
         }
 
         #endregion

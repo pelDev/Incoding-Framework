@@ -6,6 +6,8 @@
     using System.Collections.Generic;
     using System.Data.Entity;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Incoding.Extensions;
 
     #endregion
@@ -106,6 +108,66 @@
         }
 
         public void Clear() { }
+
+        Task IRepository.ExecuteSqlAsync(string sql, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.SaveAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.SavesAsync<TEntity>(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.FlushAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.SaveOrUpdateAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.DeleteAsync<TEntity>(object id, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.DeleteByIdsAsync<TEntity>(IEnumerable<object> ids, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.DeleteAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task IRepository.DeleteAllAsync<TEntity>(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<TEntity> IRepository.GetByIdAsync<TEntity>(object id, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<TEntity> IRepository.LoadByIdAsync<TEntity>(object id, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<IncPaginatedResult<TEntity>> IRepository.PaginatedAsync<TEntity>(PaginatedSpecification paginatedSpecification, OrderSpecification<TEntity> orderSpecification, Specification<TEntity> whereSpecification, FetchSpecification<TEntity> fetchSpecification, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
     }
