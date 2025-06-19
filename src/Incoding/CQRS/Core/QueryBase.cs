@@ -23,6 +23,10 @@ namespace Incoding.CQRS
 
         protected abstract TResult ExecuteResult();
 
-        protected abstract Task<TResult> ExecuteResultAsync(CancellationToken ct = default);
+        // No longer abstract — this is now the default async fallback
+        protected virtual Task<TResult> ExecuteResultAsync(CancellationToken ct = default)
+        {
+            return Task.FromResult(ExecuteResult());
+        }
     }
 }

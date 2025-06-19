@@ -58,7 +58,7 @@
             Result = null;
             lazyRepository = new Lazy<IRepository>(() => unitOfWork.Value.GetRepository());
             messageDispatcher = new Lazy<MessageDispatcher>(() => new MessageDispatcher(current, Setting));
-            await ExecuteAsync(ct);
+            await ExecuteAsync(ct).ConfigureAwait(false);
         }
 
         #endregion
@@ -67,7 +67,11 @@
 
         protected abstract void Execute();
 
-        protected abstract Task ExecuteAsync(CancellationToken ct = default);
+        protected virtual Task ExecuteAsync(CancellationToken ct = default)
+        {
+            Execute();
+            return Task.CompletedTask;
+        }
 
         #endregion
 
@@ -151,7 +155,7 @@
             public async Task<TQueryResult> QueryAsync<TQueryResult>(QueryBase<TQueryResult> query, Action<MessageExecuteSetting> configuration = null, CancellationToken ct = default)
             {
                 configuration.Do(action => action(outerSetting));
-                return await dispatcher.QueryAsync(query, outerSetting, ct);
+                return await dispatcher.QueryAsync(query, outerSetting, ct).ConfigureAwait(false);
             }
 
             public void Push(CommandBase command, Action<MessageExecuteSetting> configuration = null)
@@ -163,7 +167,7 @@
             public async Task PushAsync(CommandBase command, Action<MessageExecuteSetting> configuration = null, CancellationToken ct = default)
             {
                 configuration.Do(action => action(outerSetting));
-                await dispatcher.PushAsync(command, outerSetting, ct);
+                await dispatcher.PushAsync(command, outerSetting, ct).ConfigureAwait(false);
             }
 
             public TResult Push<TResult>(CommandBase command, Action<MessageExecuteSetting> configuration = null)
@@ -176,7 +180,7 @@
             public async Task<TResult> PushAsync<TResult>(CommandBase command, Action<MessageExecuteSetting> configuration = null, CancellationToken ct = default)
             {
                 configuration.Do(action => action(outerSetting));
-                await dispatcher.PushAsync(command, outerSetting, ct);
+                await dispatcher.PushAsync(command, outerSetting, ct).ConfigureAwait(false);
                 return (TResult)command.Result;
             }
 
