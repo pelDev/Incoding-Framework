@@ -41,7 +41,7 @@ namespace Incoding.MvcContrib.MVD
 
         protected override Task<Response> ExecuteResultAsync(CancellationToken ct = default)
         {
-            throw new NotSupportedException("This query does not support async execution.");
+            return Task.FromResult(ExecuteResult());
         }
 
         public class Response

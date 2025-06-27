@@ -5,6 +5,7 @@ namespace Incoding.MvcContrib
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
+    using System.Threading.Tasks;
     using System.Web.Mvc;
     using Incoding.Block.IoC;
     using Incoding.CQRS;
@@ -129,6 +130,65 @@ namespace Incoding.MvcContrib
                 return error(exception);
             }
         }
+
+        protected async Task<ActionResult> TryPushAsync(CommandBase input, Action<IncTryPushSetting> action = null)
+        {
+            return await TryPushAsync(composite => composite.Quote(input), action);
+        }
+
+        protected async Task<ActionResult> TryPushAsync(Action<CommandComposite> configuration, Action<IncTryPushSetting> action = null)
+        {
+            var composite = new CommandComposite();
+            configuration(composite);
+            return await TryPushAsync(composite, action);
+        }
+
+        protected async Task<ActionResult> TryPushAsync(CommandComposite composite, Action<IncTryPushSetting> action = null)
+        {
+            return await TryPushAsync(commandComposite => dispatcher.PushAsync(commandComposite), composite, action);
+
+        }
+        
+        protected async Task<ActionResult> TryPushAsync(
+            Func<CommandComposite, Task> pushAsync, 
+            CommandComposite composite, 
+            Action<IncTryPushSetting> action = null, 
+            bool? isAjax = null)
+        {
+            var setting = new IncTryPushSetting();
+            action.Do(r => r(setting));
+
+            Func<ActionResult> defaultSuccess = () => View(composite.Parts[0]);
+            var isActualAjax = isAjax.GetValueOrDefault(HttpContext.Request.IsAjaxRequest());
+            if (isActualAjax)
+                defaultSuccess = () => IncodingResult.Success();
+            var success = setting.SuccessResult ?? defaultSuccess;
+
+            Func<IncWebException, ActionResult> defaultError = (ex) => View(composite.Parts[0]);
+            if (isActualAjax)
+                defaultError = (ex) => IncodingResult.Error(ModelState);
+            var error = setting.ErrorResult ?? defaultError;
+
+            if (!ModelState.IsValid)
+                return error(IncWebException.For(string.Empty, string.Empty));
+
+            try
+            {
+                await pushAsync(composite).ConfigureAwait(false);
+                return success();
+            }
+            catch (IncWebException exception)
+            {
+                foreach (var pairError in exception.Errors)
+                {
+                    foreach (var errorMessage in pairError.Value)
+                        ModelState.AddModelError(pairError.Key, errorMessage);
+                }
+
+                return error(exception);
+            }
+        }
+
 
         #region Nested classes
 

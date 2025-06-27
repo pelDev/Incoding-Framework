@@ -3,6 +3,9 @@
     #region << Using >>
 
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Web;
     using System.Web.Mvc;
     using Incoding.CQRS;
     using Incoding.Extensions;
@@ -26,6 +29,20 @@
             return ModelState.IsValid ? IncodingResult.Success() : IncodingResult.Error(ModelState);
         }
 
+        public virtual async Task<ActionResult> ValidateAsync(HttpContextBase httpContext)
+        {
+            var parameter = await dispatcher.QueryAsync(new GetMvdParameterQuery()
+            {
+                Params = httpContext.Request.Params
+            }).ConfigureAwait(false);
+
+            // ReSharper disable once UnusedVariable
+            var instance = await dispatcher.QueryAsync(new CreateByTypeQuery(httpContext) { Type = parameter.Type, ControllerContext = this.ControllerContext, ModelState = ModelState })
+                .ConfigureAwait(false);
+
+            return ModelState.IsValid ? IncodingResult.Success() : IncodingResult.Error(ModelState);
+        }
+
         public virtual ActionResult Query()
         {
             var parameter = dispatcher.Query(new GetMvdParameterQuery()
@@ -39,6 +56,27 @@
 
             var composite = new CommandComposite((IMessage)query);
             return TryPush(commandComposite => dispatcher.Query(new MVDExecute(HttpContext) { Instance = composite }), composite, setting => setting.SuccessResult = () => IncodingResult.Success(composite.Parts[0].Result), isAjax: true);
+        }
+
+        public virtual async Task<ActionResult> QueryAsync(HttpContextBase httpContext, CancellationToken ct = default)
+        {
+            var request = httpContext.Request;
+
+            var parameter = dispatcher.Query(new GetMvdParameterQuery()
+            {
+                Params = httpContext.Request.Params
+            });
+
+            var query = await dispatcher
+                .QueryAsync(new CreateByTypeQuery(httpContext) { Type = parameter.Type, ControllerContext = this.ControllerContext, ModelState = ModelState }, null, ct)
+                .ConfigureAwait(false);
+
+            if (parameter.IsValidate && !ModelState.IsValid)
+                return IncodingResult.Error(ModelState);
+
+            var composite = new CommandComposite((IMessage)query);
+            return await TryPushAsync(commandComposite => dispatcher.QueryAsync(new MVDExecute(httpContext) { Instance = composite }, ct: ct), composite, setting => setting.SuccessResult = () => IncodingResult.Success(composite.Parts[0].Result), isAjax: true)
+                .ConfigureAwait(false);
         }
 
         public virtual ActionResult Render()
@@ -72,6 +110,39 @@
                            : Content(RenderToString(parameter.View, model));
         }
 
+        public virtual async Task<ActionResult> RenderAsync(HttpContextBase httpContext, CancellationToken ct = default)
+        {
+            var parameter = dispatcher.Query(new GetMvdParameterQuery()
+            {
+                Params = httpContext.Request.Params
+            });
+
+            object model = null;
+            if (!string.IsNullOrWhiteSpace(parameter.Type))
+            {
+                var instance = await dispatcher.QueryAsync(new CreateByTypeQuery(httpContext)
+                {
+                    Type = parameter.Type,
+                    ControllerContext = ControllerContext,
+                    ModelState = ModelState,
+                    IsModel = parameter.IsModel
+                }, ct: ct).ConfigureAwait(false);
+
+                if (parameter.IsValidate && !ModelState.IsValid)
+                    return IncodingResult.Error(ModelState);
+
+                model = parameter.IsModel ? instance : await dispatcher.QueryAsync(new MVDExecute(httpContext) { Instance = new CommandComposite((IMessage)instance) }, ct: ct)
+                    .ConfigureAwait(false);
+            }
+
+            ModelState.Clear();
+
+            var isAjaxRequest = HttpContext.Request.IsAjaxRequest();
+            return isAjaxRequest
+                           ? (ActionResult)IncPartialView(parameter.View, model)
+                           : Content(RenderToString(parameter.View, model));
+        }
+
         public virtual ActionResult Push()
         {
             var parameter = dispatcher.Query(new GetMvdParameterQuery()
@@ -93,6 +164,29 @@
                                                                                                                                                                          var data = commands.Length == 1 ? commands[0].Result : commands.Select(r => r.Result);
                                                                                                                                                                          return IncodingResult.Success(data);
                                                                                                                                                                      });
+        }
+
+        public virtual async Task<ActionResult> PushAsync(HttpContextBase httpContext, CancellationToken ct = default)
+        {
+            var parameter = dispatcher.Query(new GetMvdParameterQuery()
+            {
+                Params = httpContext.Request.Params
+            });
+
+            var commands = await dispatcher.QueryAsync(new CreateByTypeQuery.AsCommands()
+            {
+                IncTypes = parameter.Type,
+                ModelState = ModelState,
+                ControllerContext = ControllerContext,
+                IsComposite = parameter.IsCompositeArray
+            }, ct: ct).ConfigureAwait(false);
+
+            var composite = new CommandComposite(commands);
+            return await TryPushAsync(commandComposite => dispatcher.QueryAsync(new MVDExecute(httpContext) { Instance = composite }), composite, setting => setting.SuccessResult = () =>
+            {
+                var data = commands.Length == 1 ? commands[0].Result : commands.Select(r => r.Result);
+                return IncodingResult.Success(data);
+            }).ConfigureAwait(false);
         }
 
         public virtual ActionResult QueryToFile()

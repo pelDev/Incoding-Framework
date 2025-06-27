@@ -68,7 +68,7 @@
                     interception().OnBefore(message);
             }
 
-            await new DefaultDispatcher().PushAsync(Instance, ct);
+            await new DefaultDispatcher().PushAsync(Instance, ct).ConfigureAwait(false);
 
             foreach (var interception in interceptions)
             {

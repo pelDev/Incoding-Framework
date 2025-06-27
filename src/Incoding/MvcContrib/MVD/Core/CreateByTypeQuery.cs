@@ -17,6 +17,19 @@
 
     public sealed class CreateByTypeQuery : QueryBase<object>
     {
+        private readonly HttpContextBase httpContextBase;
+
+        public CreateByTypeQuery()
+        {
+            httpContextBase = new HttpContextWrapper(HttpContext.Current);
+        }
+
+        public CreateByTypeQuery(HttpContextBase request)
+        {
+            this.httpContextBase = request;
+        }
+
+
         protected override object ExecuteResult()
         {
             var byPair = Type.Split(UrlDispatcher.separatorByPair.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
@@ -70,9 +83,11 @@
             var inst = await Dispatcher.QueryAsync(new FindTypeByName()
             {
                 Type = byPair[0],
-            }, null, ct);
+            }, null, ct).ConfigureAwait(false);
 
-            var formCollection = await Dispatcher.QueryAsync(new GetFormCollectionsQuery(), ct: ct);
+            var formCollection = await Dispatcher.QueryAsync(new GetFormCollectionsQuery(httpContextBase), ct: ct)
+                .ConfigureAwait(false);
+
             var instanceType = IsGroup ? typeof(List<>).MakeGenericType(inst) : inst;
 
             if (instanceType.IsTypicalType() && IsModel)
@@ -123,6 +138,18 @@
 
         public sealed class AsCommands : QueryBase<CommandBase[]>
         {
+            private readonly HttpContextBase httpContextBase;
+
+            public AsCommands()
+            {
+                httpContextBase = new HttpContextWrapper(HttpContext.Current);
+            }
+
+            public AsCommands(HttpContextBase request)
+            {
+                this.httpContextBase = request;
+            }
+
             public string IncTypes { get; set; }
 
             public bool? IsComposite { get; set; }
@@ -154,20 +181,20 @@
 
                 if (isCompositeAsArray)
                 {
-                    var result = await Dispatcher.QueryAsync(new CreateByTypeQuery
+                    var result = await Dispatcher.QueryAsync(new CreateByTypeQuery(httpContextBase)
                     {
                         Type = splitByType[0],
                         ControllerContext = ControllerContext,
                         ModelState = ModelState,
                         IsGroup = true
-                    }, null, ct);
+                    }, null, ct).ConfigureAwait(false);
 
                     return ((IEnumerable<CommandBase>)result).ToArray();
                 }
                 else
                 {
                     var tasks = splitByType.Select(type =>
-                        Dispatcher.QueryAsync(new CreateByTypeQuery
+                        Dispatcher.QueryAsync(new CreateByTypeQuery(httpContextBase)
                         {
                             Type = type,
                             ControllerContext = ControllerContext,
@@ -175,7 +202,7 @@
                         }, null, ct)
                     );
 
-                    var results = await Task.WhenAll(tasks);
+                    var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
                     return results.Cast<CommandBase>().ToArray();
                 }
@@ -219,7 +246,7 @@
 
             protected override Task<Type> ExecuteResultAsync(CancellationToken ct = default)
             {
-                throw new NotSupportedException();
+                return Task.FromResult(ExecuteResult());
             }
         }
 
@@ -227,19 +254,30 @@
 
         public sealed class GetFormCollectionsQuery : QueryBase<FormCollection>
         {
+            HttpContextBase _httpContextBase;
+
+            public GetFormCollectionsQuery()
+            {
+                _httpContextBase = new HttpContextWrapper(HttpContext.Current);
+            }
+
+            public GetFormCollectionsQuery(HttpContextBase request)
+            {
+                _httpContextBase = request;
+            }
+
             protected override FormCollection ExecuteResult()
             {
-                var request = HttpContext.Current.Request;
-                var formAndQuery = new FormCollection(request.Form)
+                var formAndQuery = new FormCollection(_httpContextBase.Request.Form)
                 {
-                    request.QueryString
+                    _httpContextBase.Request.QueryString
                 };
                 return formAndQuery;
             }
 
             protected override Task<FormCollection> ExecuteResultAsync(CancellationToken ct = default)
             {
-                throw new NotSupportedException();
+                return Task.FromResult(ExecuteResult());
             }
 
         }
